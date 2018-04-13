@@ -20,52 +20,63 @@
 import PerfectHTTP
 import PerfectHTTPServer
 
-// An example request handler.
-// This 'handler' function can be referenced directly in the configuration below.
-func handler(request: HTTPRequest, response: HTTPResponse) {
-	// Respond with a simple message.
-	response.setHeader(.contentType, value: "text/html")
-	response.appendBody(string: "<html><title>Hello, world!</title><body>Hello, world!</body></html>")
-	// Ensure that response.completed() is called when your processing is done.
-	response.completed()
+/**
+var routes = Routes()
+routes.add(method: .get, uri: "/path/one") { req, resp in
+    resp.setBody(string: "routes received")
+    resp.completed()
+}
+ */
+
+
+var routes = Routes()
+
+var apiRoutes = Routes()
+apiRoutes.add(method: .get, uri: "/call1") { req, resp in
+    resp.setBody(string: "call1")
+    resp.completed()
 }
 
-// Configuration data for an example server.
-// This example configuration shows how to launch a server
-// using a configuration dictionary.
+apiRoutes.add(method: .get, uri: "/call2") { req, resp in
+    resp.setBody(string: "call2")
+    resp.completed()
+}
 
+var v1Routes = Routes(baseUri: "/v1")
+var v2Routes = Routes(baseUri: "/v2") { req, resp in
+    print("如果/v2 有一些额外的需求，可以在这里进行，如登录验证等")
+    /**
+    if authorized(request) {
+        response.next()
+    } else {
+        response.completed(.unauthorized)
+    }
+     */
+    resp.next()
+}
 
-let confData = [
-	"servers": [
-		// Configuration data for one server which:
-		//	* Serves the hello world message at <host>:<port>/
-		//	* Serves static files out of the "./webroot"
-		//		directory (which must be located in the current working directory).
-		//	* Performs content compression on outgoing data when appropriate.
-		[
-			"name":"localhost",
-			"port":8181,
-			"routes":[
-				["method":"get", "uri":"/", "handler":handler],
-				["method":"get", "uri":"/**", "handler":PerfectHTTPServer.HTTPHandler.staticFiles,
-				 "documentRoot":"./webroot",
-				 "allowResponseFilters":true]
-			],
-			"filters":[
-				[
-				"type":"response",
-				"priority":"high",
-				"name":PerfectHTTPServer.HTTPFilter.contentCompression,
-				]
-			]
-		]
-	]
-]
+// /v2 的 /call2 会覆盖之前的 /call2
+v2Routes.add(method: .get, uri: "/call2") { req, resp in
+    resp.setBody(string: "new call2")
+    resp.completed()
+}
+
+v1Routes.add(apiRoutes)
+v2Routes.add(apiRoutes)
+
+routes.add(v1Routes)
+routes.add(v2Routes)
 
 do {
-	// Launch the servers based on the configuration data.
-	try HTTPServer.launch(configurationData: confData)
+    let server = HTTPServer()
+    server.serverName = "localhost"
+    server.serverPort = 8181
+    
+    server.addRoutes(routes)
+    
+    try server.start()
 } catch {
-	fatalError("\(error)") // fatal error launching one of the servers
+    print(error)
 }
+
 
