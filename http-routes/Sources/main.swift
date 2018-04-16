@@ -29,6 +29,7 @@ routes.add(method: .get, uri: "/path/one") { req, resp in
  */
 
 
+/*
 var routes = Routes()
 
 var apiRoutes = Routes()
@@ -66,7 +67,43 @@ v2Routes.add(apiRoutes)
 
 routes.add(v1Routes)
 routes.add(v2Routes)
+*/
 
+
+var routes = Routes()
+
+/// 如下四种路由优先级排序，由高到低
+
+/// 1. 带变量路由路径
+routes.add(method: .get, uri: "/foo/{bar}/baz") { req, resp in
+    resp.setBody(string: req.uri)
+    print(req.uri)
+    resp.completed()
+}
+
+/// 2. 静态文本路径
+routes.add(method: .get, uri: "/foo/1/baz") { req, resp in
+    resp.setBody(string: req.uri)
+    print(req.uri)
+    resp.completed()
+}
+
+/// 3. 通配符路径
+routes.add(method: .get, uri: "/foo/*/baz") { req, resp in
+    resp.setBody(string: req.uri)
+    print(req.uri)
+    resp.completed()
+}
+
+/// 4. 结尾通配符
+routes.add(method: .get, uri: "/foo/**") { req, resp in
+    resp.setBody(string: req.uri)
+    print(req.uri)
+    resp.completed()
+}
+
+
+ 
 do {
     let server = HTTPServer()
     server.serverName = "localhost"
